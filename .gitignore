@@ -205,3 +205,28 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Private folders
+private/
+data_raw/
+data_private/
+
+# Prevent upload real data
+*.parquet
+*.csv
+*.json
+
+# Exceptions public data folders
+!data/sample/
+!data/processed/
+
+# Secrets and keys
+*.key
+*.pem
+*.env
+*.token
+*.credentials
+
+# VS code
+.vscode/
+.idea/
