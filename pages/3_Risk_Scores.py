@@ -7,7 +7,8 @@ st.title("Risk Scores")
 df = load_demo_data()
 
 st.write(
-    "This page uses a simple public risk model."
+    "This page shows the public risk score (0–100) and its main components: "
+    "transaction volume, token profile, wallet concentration, activity, and sanctions intensity."
 )
 
 tokens = st.multiselect(
@@ -23,31 +24,41 @@ st.subheader("Public risk score distribution")
 fig_hist = px.histogram(
     filtered,
     x="risk_score_public",
-    nbins=10,
+    nbins=30,  # smoother shape
     color="token",
     barmode="overlay",
-    opacity=0.7,
+    opacity=0.6,
     labels={"risk_score_public": "Public risk score"},
 )
 st.plotly_chart(fig_hist, use_container_width=True)
 
 st.subheader("Average component scores by token")
+
 comp = (
     filtered.groupby("token", as_index=False)[
-        ["volume_score", "token_profile_score", "sanctions_score", "risk_score_public"]
+        [
+            "volume_score",
+            "token_profile_score",
+            "concentration_score",
+            "velocity_score",
+            "sanctions_score",
+            "risk_score_public",
+        ]
     ].mean()
 )
+
 st.dataframe(comp)
 
-st.subheader("Top high-risk wallets (public score)")
+st.subheader("Top high-risk wallets (by public score)")
 
 top_n = st.slider("Number of wallets to show", 5, 20, 10)
 
 top_wallets = (
     filtered.sort_values("risk_score_public", ascending=False)
     .drop_duplicates("wallet_id")
-    .head(top_n)
-    [["wallet_id", "token", "tx_volume_usd", "risk_score_public"]]
+    .head(top_n)[
+        ["wallet_id", "token", "tx_volume_usd", "risk_score_public"]
+    ]
 )
 
 st.dataframe(top_wallets)

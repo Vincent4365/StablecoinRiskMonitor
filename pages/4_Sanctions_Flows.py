@@ -20,7 +20,6 @@ df["sanctions_status"] = df["sanctions_flag"].map(
     {0: "Clean", 1: "Sanction-linked"}
 )
 
-# --- Top filters ---
 st.subheader("Filters")
 
 tokens = st.multiselect(
@@ -46,7 +45,6 @@ if isinstance(date_range, tuple) and len(date_range) == 2:
     df = df[(df["date"] >= pd.to_datetime(start_date)) &
             (df["date"] <= pd.to_datetime(end_date))]
 
-# --- KPIs ---
 st.subheader("Key figures")
 
 total_vol = df["tx_volume_usd"].sum()
@@ -66,7 +64,6 @@ with col4:
 
 st.markdown("---")
 
-# --- Time series: Clean vs sanctions-linked volume ---
 st.subheader("Volume over time: clean vs sanctions-linked")
 
 daily = (
@@ -91,7 +88,6 @@ if not daily.empty:
 else:
     st.info("No data for selected filters.")
 
-# --- Sanctions-linked volume by token ---
 st.subheader("Sanctions-linked volume by token")
 
 sanctioned_only = df[df["sanctions_flag"] == 1]
@@ -122,7 +118,6 @@ if not sanctioned_only.empty:
 else:
     st.info("No sanctions-linked volume for the selected filters.")
 
-# --- Flagged wallet table ---
 st.subheader("Flagged wallets")
 
 min_vol = st.slider(
