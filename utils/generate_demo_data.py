@@ -2,12 +2,15 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-def generate_demo_data(n_days=1, n_wallets=10000, save=True):
+def generate_demo_data(seed=None, n_days=1, n_wallets=10000, save=True):
     """
     Generates a realistic stablecoin dataset and optionally overwrites demo_scores.csv.
     """
 
-    np.random.seed(None)
+    if seed is not None:
+        np.random.seed(seed)
+    else:
+        np.random.seed(None)
 
     dates = pd.date_range("2025-11-17", periods=n_days, freq="D")
     wallets = [f"Wallet {i}" for i in range(1, n_wallets + 1)]

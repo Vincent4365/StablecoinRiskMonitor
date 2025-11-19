@@ -1,8 +1,4 @@
 import streamlit as st
-
-if "data_source" not in st.session_state:
-    st.session_state["data_source"] = "Demo Data"
-
 import plotly.express as px
 from utils.load_data import load_demo_data, load_real_data
 from utils.sidebar import sidebar

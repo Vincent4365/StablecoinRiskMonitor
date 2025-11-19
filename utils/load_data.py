@@ -1,13 +1,16 @@
 import pandas as pd
 from pathlib import Path
 from utils.public_scoring import compute_public_risk_scores
+import streamlit as st
 
+@st.cache_data
 def load_demo_data():
     data_path = Path(__file__).parent.parent / "data" / "sample" / "demo_scores.csv"
     df = pd.read_csv(data_path, parse_dates=["date"])
     df = compute_public_risk_scores(df)
     return df
 
+@st.cache_data
 def load_real_data() -> pd.DataFrame:
     """
     Load anonymized real-world stablecoin data exported from BigQuery.
