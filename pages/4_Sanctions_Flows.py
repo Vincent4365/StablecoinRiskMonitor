@@ -2,11 +2,18 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 
-from utils.load_data import load_demo_data
+from utils.load_data import load_demo_data, load_real_data
+from utils.sidebar import sidebar
+
+# Shared sidebar
+data_source = sidebar()
 
 st.title("Sanctions-linked Flows")
 
-df = load_demo_data()
+if data_source.startswith("Real"):
+    df = load_real_data()
+else:
+    df = load_demo_data()
 
 if "sanctions_flag" not in df.columns:
     st.warning("Current dataset has no 'sanctions_flag' column.")

@@ -1,4 +1,8 @@
 import streamlit as st
+from utils.sidebar import sidebar
+
+# Shared sidebar
+data_source = sidebar()
 
 st.title("Methodology")
 

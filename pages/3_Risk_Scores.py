@@ -1,10 +1,17 @@
 import streamlit as st
 import plotly.express as px
-from utils.load_data import load_demo_data
+from utils.load_data import load_demo_data, load_real_data
+from utils.sidebar import sidebar
+
+# Shared sidebar
+data_source = sidebar()
 
 st.title("Risk Scores")
 
-df = load_demo_data()
+if data_source.startswith("Real"):
+    df = load_real_data()
+else:
+    df = load_demo_data()
 
 st.write(
     "This page shows the public risk score (0–100) and its main components: "

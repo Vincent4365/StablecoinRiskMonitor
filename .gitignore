@@ -230,3 +230,27 @@ data_private/
 # VS code
 .vscode/
 .idea/
+
+# Ignore all raw blockchain data
+data/real/
+data/real/raw/
+data/real/raw_*/
+data/real/*raw*.csv
+data/real/*raw*.parquet
+data/real/*raw*.json
+
+# Ignore any CSV/JSON exports unless explicitly allowed
+data/**/*.csv
+data/**/*.json
+data/**/*.parquet
+
+# Allow only safe demo + processed datasets
+!data/sample/
+!data/sample/**
+!data/processed/
+!data/processed/**
+!data/real/real_scores.csv    # anonymized final dataset (optional)
+
+*wallets*.csv
+*addresses*.csv
+*blockchain*.csv
