@@ -1,10 +1,13 @@
 import pandas as pd
+import numpy as np
 
 def _volume_score(df: pd.DataFrame) -> pd.Series:
-    max_vol = df["tx_volume_usd"].max()
-    if max_vol <= 0:
+    vol = df["tx_volume_usd"].clip(lower=1)
+    log_vol = np.log10(vol)
+    max_log = log_vol.max()
+    if max_log <= 0:
         return pd.Series([0.0] * len(df))
-    return (df["tx_volume_usd"] / max_vol * 100).clip(0, 100)
+    return (log_vol / max_log * 100).clip(0, 100)
 
 
 def _token_profile_score(df: pd.DataFrame) -> pd.Series:
@@ -60,26 +63,72 @@ def _sanctions_score(wallet_agg: pd.DataFrame) -> pd.Series:
         wallet_agg["wallet_sanctions_volume"] / max_sanctions_vol * 100
     ).clip(0, 100)
 
+def _burst_score(df: pd.DataFrame, wallet_agg: pd.DataFrame) -> pd.Series:
+    """
+    Measures how many transactions each wallet performs in its busiest hour.
+    High = bursty behavior (common in mixers, layering, consolidation bots).
+    """
+    hourly = (
+        df.groupby(["wallet_id", "hour"])
+        .size()
+        .reset_index(name="tx_count")
+    )
+
+    burst = (
+        hourly.groupby("wallet_id")["tx_count"]
+        .max()
+        .reset_index(name="wallet_burst")
+    )
+
+    merged = wallet_agg[["wallet_id"]].merge(burst, on="wallet_id", how="left")
+    merged["wallet_burst"] = merged["wallet_burst"].fillna(0)
+
+    max_burst = merged["wallet_burst"].max()
+    if max_burst <= 0:
+        return pd.Series([0.0] * len(wallet_agg))
+
+    return (merged["wallet_burst"] / max_burst * 100).clip(0, 100)
+
+
+def _time_activity_score(df: pd.DataFrame, wallet_agg: pd.DataFrame) -> pd.Series:
+    """
+    Measures how many distinct hours a wallet is active in.
+    High = bot-like or systematic behavior.
+    Low = predictable human trading clusters.
+    """
+    hours_active = (
+        df.groupby("wallet_id")["hour"]
+        .nunique()
+        .reset_index(name="active_hours")
+    )
+
+    merged = wallet_agg[["wallet_id"]].merge(hours_active, on="wallet_id", how="left")
+    merged["active_hours"] = merged["active_hours"].fillna(0)
+
+    return (merged["active_hours"] / 24 * 100).clip(0, 100)
+
 
 def compute_public_risk_scores(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
-    # 1) volume score
+    # volume score
     df["volume_score"] = _volume_score(df)
 
-    # 2) token profile score
+    # token profile score
     df["token_profile_score"] = _token_profile_score(df)
 
-    # 3) sanctions flag normalization
+    # sanctions flag normalization
     df = _ensure_sanctions_flag(df)
 
-    # 4) wallet-level aggregation
+    # wallet-level aggregation
     wallet_agg = _wallet_aggregates(df)
 
-    # 5) wallet-level scores
+    # wallet-level scores
     wallet_agg["concentration_score"] = _concentration_score(wallet_agg)
     wallet_agg["velocity_score"] = _velocity_score(wallet_agg)
     wallet_agg["sanctions_score"] = _sanctions_score(wallet_agg)
+    wallet_agg["burst_score"] = _burst_score(df, wallet_agg)
+    wallet_agg["time_score"] = _time_activity_score(df, wallet_agg)
 
     # merge back to each transaction
     df = df.merge(
@@ -89,25 +138,29 @@ def compute_public_risk_scores(df: pd.DataFrame) -> pd.DataFrame:
                 "concentration_score",
                 "velocity_score",
                 "sanctions_score",
+                "burst_score",
+                "time_score",
             ]
         ],
         on="wallet_id",
         how="left",
     )
 
-    # 6) final public risk score
+    # final public risk score
     df["risk_score_public"] = (
-        0.25 * df["volume_score"]
-        + 0.20 * df["token_profile_score"]
-        + 0.20 * df["concentration_score"]
-        + 0.20 * df["velocity_score"]
-        + 0.15 * df["sanctions_score"]
+     0.25 * df["volume_score"]
+     + 0.20 * df["token_profile_score"]
+     + 0.20 * df["concentration_score"]
+      + 0.20 * df["velocity_score"]
+     + 0.00 * df["sanctions_score"]
+     + 0.10 * df["burst_score"]
+     + 0.05 * df["time_score"]
     ).clip(0, 100)
 
     # cleanup
     df = df.drop(columns=["sanctioned_volume"], errors="ignore")
 
-    # 7) Rename columns to Capitalized Words (UI-friendly)
+    # rename columns
     rename_map = {
     "date": "Date",
     "hour": "Hour",
@@ -116,14 +169,14 @@ def compute_public_risk_scores(df: pd.DataFrame) -> pd.DataFrame:
     "tx_volume_usd": "Volume",
     "sanctions_flag": "Sanctioned",
 
-    # Component scores
     "volume_score": "Volume Score",
     "token_profile_score": "Token Score",
     "concentration_score": "Concentration Score",
     "velocity_score": "Velocity Score",
     "sanctions_score": "Sanctions Score",
+    "burst_score": "Burst Score",
+    "time_score": "Time Score",
 
-    # Final public score
     "risk_score_public": "Risk Score",
 }
 
