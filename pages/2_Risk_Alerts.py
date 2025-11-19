@@ -16,20 +16,20 @@ if df.empty:
     st.info("No data available.")
     st.stop()
 
-if "sanctions_flag" not in df.columns:
-    df["sanctions_flag"] = 0
+if "Sanctioned" not in df.columns:
+    df["Sanctioned"] = 0
 
-df["sanctions_flag"] = df["sanctions_flag"].astype(int)
-df["sanctioned_volume"] = df["tx_volume_usd"] * df["sanctions_flag"]
+df["Sanctioned"] = df["Sanctioned"].astype(int)
+df["sanctioned_volume"] = df["Volume"] * df["Sanctioned"]
 
 # wallet-level aggregates
 wallet_agg = (
-    df.groupby("wallet_id", as_index=False)
+    df.groupby("Wallet", as_index=False)
     .agg(
-        total_volume_usd=("tx_volume_usd", "sum"),
-        n_transactions=("tx_volume_usd", "count"),
-        avg_risk=("risk_score_public", "mean"),
-        max_risk=("risk_score_public", "max"),
+        total_volume_usd=("Volume", "sum"),
+        n_transactions=("Volume", "count"),
+        avg_risk=("Risk Score", "mean"),
+        max_risk=("Risk Score", "max"),
         sanctions_volume=("sanctioned_volume", "sum"),
     )
 )
@@ -49,7 +49,7 @@ top_high_risk = wallet_agg.sort_values("avg_risk", ascending=False).head(top_n)
 st.dataframe(
     top_high_risk[
         [
-            "wallet_id",
+            "Wallet",
             "total_volume_usd",
             "n_transactions",
             "avg_risk",
@@ -71,7 +71,7 @@ if not top_sanctions.empty:
     st.dataframe(
         top_sanctions[
             [
-                "wallet_id",
+                "Wallet",
                 "total_volume_usd",
                 "n_transactions",
                 "sanctions_volume",
@@ -88,7 +88,7 @@ top_whales = wallet_agg.sort_values("total_volume_usd", ascending=False).head(to
 st.dataframe(
     top_whales[
         [
-            "wallet_id",
+            "Wallet",
             "total_volume_usd",
             "n_transactions",
             "avg_risk",

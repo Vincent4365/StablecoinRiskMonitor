@@ -27,7 +27,9 @@ if data_source.startswith("Demo"):
 else:
 	df = load_real_data()
 
-df_sorted = df.sort_values("risk_score_public", ascending=False)
+# Use new column names after renaming
+# 'Risk Score', 'Volume', 'Wallet', 'Token', 'Date'
+df_sorted = df.sort_values("Risk Score", ascending=False)
 df_preview = df_sorted.head(1000)
 
 st.subheader(f"Top 1000 rows from {data_source}")
@@ -37,34 +39,36 @@ st.subheader("Key figures")
 
 col1, col2, col3 = st.columns(3)
 with col1:
-	st.metric("Total volume (USD)", f"${df['tx_volume_usd'].sum():,.0f}")
+	st.metric("Total volume (USD)", f"${df['Volume'].sum():,.0f}")
 with col2:
-	st.metric("Number of wallets", df["wallet_id"].nunique())
+	st.metric("Number of wallets", df["Wallet"].nunique())
 with col3:
-	st.metric("Average public risk score", f"{df['risk_score_public'].mean():.1f}")
+	st.metric("Average public risk score", f"{df['Risk Score'].mean():.1f}")
 
 st.subheader("Stablecoin volume over time")
 
-daily = df.groupby(["date", "token"], as_index=False)["tx_volume_usd"].sum()
+daily = df.groupby(["Date", "Hour", "Token"], as_index=False)["Volume"].sum()
 
 fig_vol = px.line(
-	daily,
-	x="date",
-	y="tx_volume_usd",
-	color="token",
-	markers=False,
+    daily,
+    x="Hour",
+    y="Volume",
+    color="Token",
+    line_group="Date",
+    markers=False,
 )
 st.plotly_chart(fig_vol, use_container_width=True)
 
 st.subheader("Total volume by token")
 
-vol_token = df.groupby("token", as_index=False)["tx_volume_usd"].sum()
+vol_token = df.groupby("Token", as_index=False)["Volume"].sum()
+vol_token = vol_token.sort_values("Volume", ascending=True)
 fig_token = px.bar(
-	vol_token,
-	x="tx_volume_usd",
-	y="token",
-	orientation="h",
-	text="tx_volume_usd",
+    vol_token,
+    x="Volume",
+    y="Token",
+    orientation="h",
+    text="Volume",
 )
 
 fig_token.update_traces(texttemplate="%{text:,.0f}")

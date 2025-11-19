@@ -44,13 +44,15 @@ def convert_raw_to_real_scores() -> None:
 
     # Extract date (yyyy-mm-dd only)
     df["date"] = pd.to_datetime(df["block_timestamp"]).dt.date
-    df["date"] = pd.to_datetime(df["date"])
+
+    ts = pd.to_datetime(df["block_timestamp"], errors="coerce")
+    df["hour"] = ts.dt.hour + 1
 
     # Placeholder sanctions flag (always 0)
     df["sanctions_flag"] = 0
 
     # Final cleaned output
-    out = df[["date", "token", "wallet_id", "tx_volume_usd", "sanctions_flag"]]
+    out = df[["date", "hour", "token", "wallet_id", "tx_volume_usd", "sanctions_flag"]]
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(OUT_PATH, index=False)

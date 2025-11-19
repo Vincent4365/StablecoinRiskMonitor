@@ -6,7 +6,7 @@ import streamlit as st
 @st.cache_data
 def load_demo_data():
     data_path = Path(__file__).parent.parent / "data" / "sample" / "demo_scores.csv"
-    df = pd.read_csv(data_path, parse_dates=["date"])
+    df = pd.read_csv(data_path)
     df = compute_public_risk_scores(df)
     return df
 
@@ -17,10 +17,10 @@ def load_real_data() -> pd.DataFrame:
 
     Expects a CSV created by the anonymizer:
         data/real/real_scores.csv
-    with columns: date, token, wallet_id, tx_volume_usd, sanctions_flag
+    with columns: date, hour, token, wallet_id, tx_volume_usd, sanctions_flag
     """
     path = Path(__file__).parent.parent / "data" / "processed" / "real_scores.csv"
-    df = pd.read_csv(path, parse_dates=["date"])
+    df = pd.read_csv(path)
 
     df = compute_public_risk_scores(df)
     return df

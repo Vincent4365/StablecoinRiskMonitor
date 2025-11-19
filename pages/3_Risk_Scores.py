@@ -20,36 +20,36 @@ st.write(
 
 tokens = st.multiselect(
     "Filter by token",
-    sorted(df["token"].unique()),
-    default=sorted(df["token"].unique()),
+    sorted(df["Token"].unique()),
+    default=sorted(df["Token"].unique()),
 )
 
-filtered = df[df["token"].isin(tokens)]
+filtered = df[df["Token"].isin(tokens)]
 
 st.subheader("Public risk score distribution")
 
 fig_hist = px.histogram(
     filtered,
-    x="risk_score_public",
+    x="Risk Score",
     nbins=30,  # smoother shape
-    color="token",
+    color="Token",
     barmode="overlay",
     opacity=0.6,
-    labels={"risk_score_public": "Public risk score"},
+    labels={"Risk Score": "Public risk score"},
 )
 st.plotly_chart(fig_hist, use_container_width=True)
 
 st.subheader("Average component scores by token")
 
 comp = (
-    filtered.groupby("token", as_index=False)[
+    filtered.groupby("Token", as_index=False)[
         [
-            "volume_score",
-            "token_profile_score",
-            "concentration_score",
-            "velocity_score",
-            "sanctions_score",
-            "risk_score_public",
+            "Volume Score",
+            "Token Score",
+            "Concentration Score",
+            "Velocity Score",
+            "Sanctions Score",
+            "Risk Score",
         ]
     ].mean()
 )
@@ -61,10 +61,10 @@ st.subheader("Top high-risk wallets (by public score)")
 top_n = st.slider("Number of wallets to show", 5, 20, 10)
 
 top_wallets = (
-    filtered.sort_values("risk_score_public", ascending=False)
-    .drop_duplicates("wallet_id")
+    filtered.sort_values("Risk Score", ascending=False)
+    .drop_duplicates("Wallet")
     .head(top_n)[
-        ["wallet_id", "token", "tx_volume_usd", "risk_score_public"]
+        ["Wallet", "Token", "Volume", "Risk Score"]
     ]
 )
 

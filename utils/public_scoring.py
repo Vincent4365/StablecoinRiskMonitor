@@ -107,4 +107,26 @@ def compute_public_risk_scores(df: pd.DataFrame) -> pd.DataFrame:
     # cleanup
     df = df.drop(columns=["sanctioned_volume"], errors="ignore")
 
+    # 7) Rename columns to Capitalized Words (UI-friendly)
+    rename_map = {
+    "date": "Date",
+    "hour": "Hour",
+    "token": "Token",
+    "wallet_id": "Wallet",
+    "tx_volume_usd": "Volume",
+    "sanctions_flag": "Sanctioned",
+
+    # Component scores
+    "volume_score": "Volume Score",
+    "token_profile_score": "Token Score",
+    "concentration_score": "Concentration Score",
+    "velocity_score": "Velocity Score",
+    "sanctions_score": "Sanctions Score",
+
+    # Final public score
+    "risk_score_public": "Risk Score",
+}
+
+    df = df.rename(columns=rename_map)
+
     return df

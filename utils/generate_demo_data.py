@@ -23,14 +23,16 @@ def generate_demo_data(seed=None, n_days=1, n_wallets=10000, save=True):
 
         for _ in range(n_tx_wallet):
             date = np.random.choice(dates)
+            hour = np.random.randint(1, 25)  # 1–24
             token = np.random.choice(tokens)
             volume = np.random.randint(10, 5_000_000)
             sanction = 1 if np.random.rand() < 0.05 else 0  # 5% sanctions-flagged
-            rows.append([date, token, wallet, volume, sanction])
+            # Store date as string (YYYY-MM-DD), hour as int
+            rows.append([pd.Timestamp(date).strftime("%Y-%m-%d"), hour, token, wallet, volume, sanction])
 
     df = pd.DataFrame(
         rows,
-        columns=["date", "token", "wallet_id", "tx_volume_usd", "sanctions_flag"]
+        columns=["date", "hour", "token", "wallet_id", "tx_volume_usd", "sanctions_flag"]
     )
 
     if save:
