@@ -1,98 +1,110 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 from utils.load_data import load_demo_data, load_real_data
 from utils.sidebar import sidebar
+from utils.formatting import format_volume, get_wallet_aggregation
+from utils.styling import inject_icon_styles
+
+inject_icon_styles()
 
 data_source = sidebar()
 
-st.title("Top Flags")
+st.title("Risk Alerts")
+st.caption(
+	"This page highlights wallets with high risk scores, large volumes, and sanctions-linked activity."
+)
 
-if data_source.startswith("Real"):
-    df = load_real_data()
+if data_source.startswith("Demo"):
+	df = load_demo_data()
 else:
-    df = load_demo_data()
+	df = load_real_data()
 
 if df.empty:
-    st.info("No data available.")
-    st.stop()
+	st.info("No data available.")
+	st.stop()
 
-if "Sanctioned" not in df.columns:
-    df["Sanctioned"] = 0
+wallet_agg = get_wallet_aggregation(df)
 
-df["Sanctioned"] = df["Sanctioned"].astype(int)
-df["sanctioned_volume"] = df["Volume"] * df["Sanctioned"]
+with st.container(border=True):
+	st.header("High-Risk Wallets")
 
-# wallet-level aggregates
-wallet_agg = (
-    df.groupby("Wallet", as_index=False)
-    .agg(
-        total_volume_usd=("Volume", "sum"),
-        n_transactions=("Volume", "count"),
-        avg_risk=("Risk Score", "mean"),
-        max_risk=("Risk Score", "max"),
-        sanctions_volume=("sanctioned_volume", "sum"),
-    )
-)
+	top_n = st.slider("Number of wallets:", 5, 100, 25)
 
-wallet_agg["has_sanctions"] = wallet_agg["sanctions_volume"] > 0
+	st.subheader("Top high-risk wallets (by average risk score)")
+	top_high_risk = wallet_agg.head(top_n)
+	st.dataframe(
+		top_high_risk[
+			[
+				"Wallet",
+				"Total Volume",
+				"Transactions",
+				"Average Risk",
+				"Max Risk",
+				"Sanctioned Volume",
+			]
+		],
+		use_container_width=True,
+		hide_index=True
+	)
 
-st.write(
-    "This page highlights wallets with high public risk scores, large volumes, "
-    "and sanctions-linked activity based on the public risk model."
-)
+	st.subheader("Whale wallets (by total volume)")
+	top_whales = wallet_agg.sort_values("Total Volume", ascending=False).head(top_n)
+	st.dataframe(
+		top_whales[
+			[
+				"Wallet",
+				"Total Volume",
+				"Transactions",
+				"Average Risk",
+				"Sanctioned Volume",
+			]
+		],
+		use_container_width=True,
+		hide_index=True
+	)
 
-top_n = st.slider("Number of wallets to show in each list", 5, 30, 10)
+with st.container(border=True):
+	st.header("Sanctions-Linked Activity")
 
-# 1) Highest average risk
-st.subheader("Top high-risk wallets (by average public score)")
-top_high_risk = wallet_agg.sort_values("avg_risk", ascending=False).head(top_n)
-st.dataframe(
-    top_high_risk[
-        [
-            "Wallet",
-            "total_volume_usd",
-            "n_transactions",
-            "avg_risk",
-            "max_risk",
-            "sanctions_volume",
-        ]
-    ]
-)
+	total_vol = df["Volume"].sum()
+	sanctioned_vol = df.loc[df["Sanctioned"] == 1, "Volume"].sum()
+	sanctioned_pct = (sanctioned_vol / total_vol * 100) if total_vol > 0 else 0
+	flagged_wallets = df.loc[df["Sanctioned"] == 1, "Wallet"].nunique()
+	sanctioned_tx_count = (df["Sanctioned"] == 1).sum()
 
-# 2) Sanctions-exposed wallets (by sanctions-linked volume)
-st.subheader("Sanctions-exposed wallets (by sanctions-linked volume)")
-top_sanctions = (
-    wallet_agg[wallet_agg["has_sanctions"]]
-    .sort_values("sanctions_volume", ascending=False)
-    .head(top_n)
-)
+	col1, col2, col3, col4 = st.columns(4)
+	with col1:
+		st.metric("Sanctioned Volume", format_volume(sanctioned_vol))
+	with col2:
+		st.metric("Share of Total", f"{sanctioned_pct:.2f}%")
+	with col3:
+		st.metric("Flagged Wallets", flagged_wallets)
+	with col4:
+		st.metric("Sanctioned Txs", sanctioned_tx_count)
 
-if not top_sanctions.empty:
-    st.dataframe(
-        top_sanctions[
-            [
-                "Wallet",
-                "total_volume_usd",
-                "n_transactions",
-                "sanctions_volume",
-                "avg_risk",
-            ]
-        ]
-    )
-else:
-    st.info("No sanctions-exposed wallets in the current dataset.")
+	st.divider()
 
-# 3) Whale wallets (by total volume)
-st.subheader("Whale wallets (by total volume)")
-top_whales = wallet_agg.sort_values("total_volume_usd", ascending=False).head(top_n)
-st.dataframe(
-    top_whales[
-        [
-            "Wallet",
-            "total_volume_usd",
-            "n_transactions",
-            "avg_risk",
-            "sanctions_volume",
-        ]
-    ]
-)
+	st.subheader("Sanctions-exposed wallets")
+	top_sanctions = (
+		wallet_agg[wallet_agg["Sanctioned Volume"] > 0]
+		.sort_values("Sanctioned Volume", ascending=False)
+		.head(top_n)
+	)
+
+	if not top_sanctions.empty:
+		st.dataframe(
+			top_sanctions[
+				[
+					"Wallet",
+					"Total Volume",
+					"Transactions",
+					"Sanctioned Volume",
+					"Average Risk",
+				]
+			],
+			use_container_width=True,
+			hide_index=True
+		)
+	else:
+		st.info("No sanctions-exposed wallets in the current dataset.")

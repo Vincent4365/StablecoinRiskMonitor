@@ -1,12 +1,12 @@
 from pathlib import Path
 import pandas as pd
+from utils.load_data import load_sanctions_list
 
 # Ethereum mainnet stablecoin contracts (lowercase)
 USDC_CONTRACT = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 DAI_CONTRACT  = "0x6b175474e89094c44da98b954eedeac495271d0f"
 USDE_CONTRACT = "0x4c9edd5852cd905f086c759e8383e09bff1e68b3"
 
-# Fixed paths (always used)
 RAW_PATH = Path("data/real/raw/raw_bigquery.csv")
 OUT_PATH = Path("data/processed/real_scores.csv")
 
@@ -37,19 +37,28 @@ def convert_raw_to_real_scores() -> None:
 
     df["tx_volume_usd"] = df["token_amount"].astype(float)
 
-    # Wallet anonymization
+    # Check sanctions
+    sanctions = load_sanctions_list()
+    sanctioned_set = set(sanctions["address"].str.lower())
+
+    df["from_sanctioned"] = df["from_address"].str.lower().isin(sanctioned_set).astype(int)
+    df["to_sanctioned"]   = df["to_address"].str.lower().isin(sanctioned_set).astype(int)
+
+    # Combine sanctions flags
+    df["sanctions_flag"] = (
+        df["from_sanctioned"] | df["to_sanctioned"]
+    ).astype(int)
+
+    # Anonymize wallets (after sanctions check)
     df["wallet_raw"] = df["from_address"].str.lower()
     codes, uniques = pd.factorize(df["wallet_raw"])
     df["wallet_id"] = [f"Wallet {i+1}" for i in codes]
 
-    # Extract date (yyyy-mm-dd only)
-    df["date"] = pd.to_datetime(df["block_timestamp"]).dt.date
+    # Extract date (yyyy-mm-dd only) as string for CSV
+    df["date"] = pd.to_datetime(df["block_timestamp"]).dt.strftime("%Y-%m-%d")
 
     ts = pd.to_datetime(df["block_timestamp"], errors="coerce")
     df["hour"] = ts.dt.hour + 1
-
-    # Placeholder sanctions flag (always 0)
-    df["sanctions_flag"] = 0
 
     # Final cleaned output
     out = df[["date", "hour", "token", "wallet_id", "tx_volume_usd", "sanctions_flag"]]
@@ -64,3 +73,4 @@ def convert_raw_to_real_scores() -> None:
 
 if __name__ == "__main__":
     convert_raw_to_real_scores()
+

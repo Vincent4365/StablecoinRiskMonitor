@@ -1,6 +1,10 @@
 [theme]
-base="light"
-primaryColor="#0A5FFF"
-backgroundColor="#FFFFFF"
-secondaryBackgroundColor="#F6F6F6"
-textColor="#000000"
+base = "dark"
+
+primaryColor   = "mediumSlateBlue"
+backgroundColor = "#050816"
+secondaryBackgroundColor = "#1a1625"
+textColor = "#e5e7eb"
+
+borderColor = "#8B5CF6"
+showBorder = true

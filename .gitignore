@@ -251,6 +251,15 @@ data/**/*.parquet
 !data/processed/**
 !data/real/real_scores.csv    # anonymized final dataset (optional)
 
+# Ignore sanctions lists
+data/sanctions/
+*.sanctions.csv
+sanctions.csv
+sanctioned_addresses.csv
+*.blocked.csv
+*.watchlist.csv
+data/real/sanctions/
+
 *wallets*.csv
 *addresses*.csv
 *blockchain*.csv
