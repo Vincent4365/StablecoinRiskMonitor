@@ -1,7 +1,7 @@
 import streamlit as st
 from utils.sidebar import sidebar
 
-data_source = sidebar()
+sidebar()
 
 st.title("Systemic Risk Index")
 st.caption(

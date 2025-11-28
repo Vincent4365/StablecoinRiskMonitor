@@ -1,50 +1,77 @@
 import streamlit as st
-from utils.generate_demo_data import generate_demo_data
-from utils.convert_real_data import convert_raw_to_real_scores
-from utils.load_data import load_demo_data, load_real_data
+
 
 def sidebar():
-    ss = st.session_state
+    """Minimal sidebar for cloud-only mode.
 
-    if "data_source" not in ss:
-        ss["data_source"] = "Real Data"
-
+    Keeps a short caption and exposes a manual cache-clear button so
+    users can force a fresh cloud CSV fetch.
+    """
     st.sidebar.caption(
         "This dashboard monitors stablecoin activity and AML-related risk signals. "
         "All blockchain addresses have been anonymized to ensure privacy."
     )
 
-    with st.sidebar.expander("Settings", expanded=False):
-        options = ["Demo Data", "Real Data"]
-        current_index = options.index(ss["data_source"]) if ss["data_source"] in options else 1
-        selected = st.radio(
-            "Select data source",
-            options,
-            index=current_index,
-            key="_data_source",
-        )
-        if selected != ss["data_source"]:
-            ss["data_source"] = selected
+    # Restore persisted cloud last-updated time (if available) so caption survives reloads
+    try:
+        if "cloud_last_modified" not in st.session_state:
+            from pathlib import Path
 
-        seed = st.number_input(
-            "Random seed",
-            min_value=0,
-            max_value=10_000_000,
-            step=1,
-            value=ss.get("seed", 42),
-            key="seed",
-        )
+            cache_path = Path(__file__).parent.parent / ".cache" / "cloud_last_modified.txt"
+            if cache_path.exists():
+                try:
+                    ts = cache_path.read_text().strip()
+                except (OSError, UnicodeDecodeError) as e:
+                    import logging
 
-        if st.button("Generate Demo Dataset"):
-            generate_demo_data(seed=seed)
-            load_demo_data.clear()
-            ss["data_source"] = "Demo Data"
-            st.success("Demo dataset has been generated.")
+                    logging.getLogger(__name__).warning("Failed to read cloud_last_modified cache: %s", e)
+                else:
+                    if ts:
+                        st.session_state["cloud_last_modified"] = ts
+    except ImportError:
+        # Very unlikely: pathlib import failure — log and continue
+        import logging
 
-        if st.button("Convert Real Data"):
-            convert_raw_to_real_scores()
-            load_real_data.clear()
-            ss["data_source"] = "Real Data"
-            st.success("Real dataset has been converted and loaded.")
+        logging.getLogger(__name__).warning("Pathlib import failed while restoring cache")
 
-    return ss["data_source"]
+    if st.sidebar.button("Refresh cloud data"):
+        # Clear the cloud data cache so the next load fetches fresh CSV, then reload the app
+        try:
+            from utils.load_data import load_cloud_data
+
+            # Prefer clearing the specific loader cache if available
+            if hasattr(load_cloud_data, "clear"):
+                load_cloud_data.clear()
+            else:
+                # Fallback: clear all cached data if supported
+                if hasattr(st, "cache_data") and hasattr(st.cache_data, "clear"):
+                    try:
+                        st.cache_data.clear()
+                    except Exception as e:
+                        import logging
+
+                        logging.getLogger(__name__).debug("st.cache_data.clear() raised: %s", e)
+
+            # Try to programmatically rerun the app if Streamlit supports it;
+            # older or non-standard builds may not expose experimental_rerun.
+            if hasattr(st, "experimental_rerun"):
+                try:
+                    st.experimental_rerun()
+                except Exception as e:
+                    # If rerun fails, fall through to a user message below and log why
+                    import logging
+
+                    logging.getLogger(__name__).debug("st.experimental_rerun() failed: %s", e)
+
+            # If we cannot programmatically rerun, inform the user to refresh manually
+            st.sidebar.success("Cloud data cache cleared. Please reload the page to fetch fresh data.")
+
+        except (ImportError, RuntimeError, OSError, AttributeError) as e:
+            import logging
+
+            logging.getLogger(__name__).exception("Error clearing cloud cache: %s", e)
+            # Surface the error message to the user to aid debugging
+            st.sidebar.error(f"Failed to clear cloud data cache: {e}")
+
+    # No return value: app is cloud-only and will directly call load_cloud_data()
+    return None

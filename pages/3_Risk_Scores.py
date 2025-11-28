@@ -1,12 +1,12 @@
 import streamlit as st
-from utils.load_data import load_demo_data, load_real_data
+from utils.load_data import load_cloud_data
 from utils.sidebar import sidebar
 from utils.charts import create_risk_histogram, get_component_scores
 from utils.styling import inject_icon_styles
 
 inject_icon_styles()
 
-data_source = sidebar()
+sidebar()
 
 st.title("Risk Scores")
 st.caption(
@@ -14,10 +14,8 @@ st.caption(
 	"transaction volume, token profile, wallet concentration, activity, and sanctions intensity."
 )
 
-if data_source.startswith("Demo"):
-	df = load_demo_data()
-else:
-	df = load_real_data()
+# Cloud-only dataset
+df = load_cloud_data()
 
 if df.empty:
 	st.info("No data available.")

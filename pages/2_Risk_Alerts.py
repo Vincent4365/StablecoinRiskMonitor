@@ -1,24 +1,22 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from utils.load_data import load_demo_data, load_real_data
+from utils.load_data import load_cloud_data
 from utils.sidebar import sidebar
 from utils.formatting import format_volume, get_wallet_aggregation
 from utils.styling import inject_icon_styles
 
 inject_icon_styles()
 
-data_source = sidebar()
+sidebar()
 
 st.title("Risk Alerts")
 st.caption(
 	"This page highlights wallets with high risk scores, large volumes, and sanctions-linked activity."
 )
 
-if data_source.startswith("Demo"):
-	df = load_demo_data()
-else:
-	df = load_real_data()
+# Cloud-only dataset
+df = load_cloud_data()
 
 if df.empty:
 	st.info("No data available.")

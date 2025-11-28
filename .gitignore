@@ -263,3 +263,7 @@ data/real/sanctions/
 *wallets*.csv
 *addresses*.csv
 *blockchain*.csv
+
+# Archive queries folder (BigQuery queries)
+queries/
+queries/**

@@ -1,1 +1,0 @@
--- Placeholder for stablecoin transfers SQL query. --

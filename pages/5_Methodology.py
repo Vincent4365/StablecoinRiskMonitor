@@ -4,7 +4,7 @@ from utils.styling import inject_icon_styles
 
 inject_icon_styles()
 
-data_source = sidebar()
+sidebar()
 
 st.title("Methodology")
 st.caption("Explanation of risk scoring methodology and data sources used in this dashboard.")

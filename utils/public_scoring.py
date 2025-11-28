@@ -2,13 +2,12 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
-@st.cache_data
 def compute_public_risk_scores(df: pd.DataFrame) -> pd.DataFrame:
-    """Compute risk scores with caching to improve performance."""
-    return _compute_risk_scores_internal(df)
-
-def _compute_risk_scores_internal(df: pd.DataFrame) -> pd.DataFrame:
-    """Internal scoring function called by cached wrapper."""
+    """Compute risk scores for transactions.
+    
+    Note: Caching is handled at the data loader level (load_cloud_data),
+    so this function does not need its own cache decorator.
+    """
     df = df.copy()
 
     # volume score
@@ -27,8 +26,8 @@ def _compute_risk_scores_internal(df: pd.DataFrame) -> pd.DataFrame:
     wallet_agg["concentration_score"] = _concentration_score(wallet_agg)
     wallet_agg["velocity_score"] = _velocity_score(wallet_agg)
     wallet_agg["sanctions_score"] = _sanctions_score(wallet_agg)
-    wallet_agg["burst_score"] = _burst_score(df, wallet_agg)
-    wallet_agg["time_score"] = _time_activity_score(df, wallet_agg)
+    wallet_agg["burst_score"] = _burst_score(wallet_agg)
+    wallet_agg["time_score"] = _time_activity_score(wallet_agg)
 
     # merge back to each transaction
     df = df.merge(
@@ -122,14 +121,16 @@ def _ensure_sanctions_flag(df: pd.DataFrame) -> pd.DataFrame:
 def _wallet_aggregates(df: pd.DataFrame) -> pd.DataFrame:
     df["sanctioned_volume"] = df["tx_volume_usd"] * df["sanctions_flag"]
 
-    return (
-        df.groupby("wallet_id", as_index=False)
-        .agg(
-            wallet_total_volume=("tx_volume_usd", "sum"),
-            wallet_n_tx=("tx_volume_usd", "count"),
-            wallet_sanctions_volume=("sanctioned_volume", "sum"),
-        )
-    )
+    # Consolidate all wallet-level aggregations in a single groupby for performance
+    agg_dict = {
+        "wallet_total_volume": ("tx_volume_usd", "sum"),
+        "wallet_n_tx": ("tx_volume_usd", "count"),
+        "wallet_sanctions_volume": ("sanctioned_volume", "sum"),
+        "wallet_burst": ("hour", lambda x: x.value_counts().max() if len(x) > 0 else 0),
+        "active_hours": ("hour", "nunique"),
+    }
+    
+    return df.groupby("wallet_id", as_index=False).agg(**agg_dict)
 
 
 def _concentration_score(wallet_agg: pd.DataFrame) -> pd.Series:
@@ -155,48 +156,28 @@ def _sanctions_score(wallet_agg: pd.DataFrame) -> pd.Series:
         wallet_agg["wallet_sanctions_volume"] / max_sanctions_vol * 100
     ).clip(0, 100)
 
-def _burst_score(df: pd.DataFrame, wallet_agg: pd.DataFrame) -> pd.Series:
+def _burst_score(wallet_agg: pd.DataFrame) -> pd.Series:
     """
     Measures how many transactions each wallet performs in its busiest hour.
     High = bursty behavior (common in mixers, layering, consolidation bots).
+    
+    Uses pre-computed wallet_burst from aggregates for performance.
     """
-    hourly = (
-        df.groupby(["wallet_id", "hour"])
-        .size()
-        .reset_index(name="tx_count")
-    )
-
-    burst = (
-        hourly.groupby("wallet_id")["tx_count"]
-        .max()
-        .reset_index(name="wallet_burst")
-    )
-
-    merged = wallet_agg[["wallet_id"]].merge(burst, on="wallet_id", how="left")
-    merged["wallet_burst"] = merged["wallet_burst"].fillna(0)
-
-    max_burst = merged["wallet_burst"].max()
+    max_burst = wallet_agg["wallet_burst"].max()
     if max_burst <= 0:
         return pd.Series([0.0] * len(wallet_agg))
 
-    return (merged["wallet_burst"] / max_burst * 100).clip(0, 100)
+    return (wallet_agg["wallet_burst"] / max_burst * 100).clip(0, 100)
 
 
-def _time_activity_score(df: pd.DataFrame, wallet_agg: pd.DataFrame) -> pd.Series:
+def _time_activity_score(wallet_agg: pd.DataFrame) -> pd.Series:
     """
     Measures how many distinct hours a wallet is active in.
     High = bot-like or systematic behavior.
     Low = predictable human trading clusters.
+    
+    Uses pre-computed active_hours from aggregates for performance.
     """
-    hours_active = (
-        df.groupby("wallet_id")["hour"]
-        .nunique()
-        .reset_index(name="active_hours")
-    )
-
-    merged = wallet_agg[["wallet_id"]].merge(hours_active, on="wallet_id", how="left")
-    merged["active_hours"] = merged["active_hours"].fillna(0)
-
-    return (merged["active_hours"] / 24 * 100).clip(0, 100)
+    return (wallet_agg["active_hours"] / 24 * 100).clip(0, 100)
 
 
