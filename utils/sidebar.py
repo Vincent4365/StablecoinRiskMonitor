@@ -1,4 +1,7 @@
 import streamlit as st
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def sidebar():
@@ -22,17 +25,13 @@ def sidebar():
                 try:
                     ts = cache_path.read_text().strip()
                 except (OSError, UnicodeDecodeError) as e:
-                    import logging
-
-                    logging.getLogger(__name__).warning("Failed to read cloud_last_modified cache: %s", e)
+                    logger.warning("Failed to read cloud_last_modified cache: %s", e)
                 else:
                     if ts:
                         st.session_state["cloud_last_modified"] = ts
     except ImportError:
         # Very unlikely: pathlib import failure — log and continue
-        import logging
-
-        logging.getLogger(__name__).warning("Pathlib import failed while restoring cache")
+        logger.warning("Pathlib import failed while restoring cache")
 
     if st.sidebar.button("Refresh cloud data"):
         # Clear the cloud data cache so the next load fetches fresh CSV, then reload the app
@@ -48,9 +47,7 @@ def sidebar():
                     try:
                         st.cache_data.clear()
                     except Exception as e:
-                        import logging
-
-                        logging.getLogger(__name__).debug("st.cache_data.clear() raised: %s", e)
+                        logger.debug("st.cache_data.clear() raised: %s", e)
 
             # Try to programmatically rerun the app if Streamlit supports it;
             # older or non-standard builds may not expose experimental_rerun.
@@ -59,17 +56,13 @@ def sidebar():
                     st.experimental_rerun()
                 except Exception as e:
                     # If rerun fails, fall through to a user message below and log why
-                    import logging
-
-                    logging.getLogger(__name__).debug("st.experimental_rerun() failed: %s", e)
+                    logger.debug("st.experimental_rerun() failed: %s", e)
 
             # If we cannot programmatically rerun, inform the user to refresh manually
             st.sidebar.success("Cloud data cache cleared. Please reload the page to fetch fresh data.")
 
         except (ImportError, RuntimeError, OSError, AttributeError) as e:
-            import logging
-
-            logging.getLogger(__name__).exception("Error clearing cloud cache: %s", e)
+            logger.exception("Error clearing cloud cache: %s", e)
             # Surface the error message to the user to aid debugging
             st.sidebar.error(f"Failed to clear cloud data cache: {e}")
 

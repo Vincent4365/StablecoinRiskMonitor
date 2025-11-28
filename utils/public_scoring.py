@@ -93,6 +93,11 @@ def compute_public_risk_scores(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def _volume_score(df: pd.DataFrame) -> pd.Series:
+    """Calculate volume-based risk score (0-100) using log scaling.
+    
+    Higher transaction volumes receive higher scores. Uses logarithmic scaling
+    to normalize across wide ranges of transaction sizes.
+    """
     vol = df["tx_volume_usd"].clip(lower=1)
     log_vol = np.log10(vol)
     max_log = log_vol.max()
@@ -102,6 +107,11 @@ def _volume_score(df: pd.DataFrame) -> pd.Series:
 
 
 def _token_profile_score(df: pd.DataFrame) -> pd.Series:
+    """Assign baseline risk scores by token type.
+    
+    Different stablecoins have different risk profiles based on their
+    characteristics, usage patterns, and regulatory exposure.
+    """
     token_baseline = {
         "USDT": 70.0,
         "USDC": 50.0,
@@ -112,6 +122,11 @@ def _token_profile_score(df: pd.DataFrame) -> pd.Series:
 
 
 def _ensure_sanctions_flag(df: pd.DataFrame) -> pd.DataFrame:
+    """Ensure sanctions_flag column exists and is properly typed.
+    
+    Creates the column with default value 0 if missing, ensuring
+    subsequent scoring logic can safely reference it.
+    """
     if "sanctions_flag" not in df.columns:
         df["sanctions_flag"] = 0
     df["sanctions_flag"] = df["sanctions_flag"].astype(int)
@@ -119,6 +134,12 @@ def _ensure_sanctions_flag(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _wallet_aggregates(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute all wallet-level aggregations in a single pass for performance.
+    
+    Consolidates multiple groupby operations into one to reduce processing time.
+    Calculates total volume, transaction count, sanctions exposure, burst activity,
+    and temporal spread for each wallet.
+    """
     df["sanctioned_volume"] = df["tx_volume_usd"] * df["sanctions_flag"]
 
     # Consolidate all wallet-level aggregations in a single groupby for performance
@@ -134,6 +155,11 @@ def _wallet_aggregates(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _concentration_score(wallet_agg: pd.DataFrame) -> pd.Series:
+    """Calculate concentration score based on wallet total volume.
+    
+    Wallets handling larger volumes receive higher scores, indicating
+    potential systemic risk or whale activity.
+    """
     max_vol = wallet_agg["wallet_total_volume"].max()
     if max_vol <= 0:
         return pd.Series([0.0] * len(wallet_agg))
@@ -141,6 +167,11 @@ def _concentration_score(wallet_agg: pd.DataFrame) -> pd.Series:
 
 
 def _velocity_score(wallet_agg: pd.DataFrame) -> pd.Series:
+    """Calculate velocity score based on transaction count.
+    
+    Higher transaction frequency suggests automated trading, mixing services,
+    or high-activity operations.
+    """
     max_tx = wallet_agg["wallet_n_tx"].max()
     if max_tx <= 0:
         return pd.Series([0.0] * len(wallet_agg))
@@ -148,6 +179,11 @@ def _velocity_score(wallet_agg: pd.DataFrame) -> pd.Series:
 
 
 def _sanctions_score(wallet_agg: pd.DataFrame) -> pd.Series:
+    """Calculate sanctions exposure score based on sanctioned volume.
+    
+    Wallets with any sanctions exposure receive maximum score. If multiple
+    wallets have sanctions exposure, scores are scaled by relative volume.
+    """
     max_sanctions_vol = wallet_agg["wallet_sanctions_volume"].max()
     if max_sanctions_vol <= 0:
         # binary: any sanctions = 100

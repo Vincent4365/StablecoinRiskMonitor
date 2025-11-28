@@ -56,7 +56,14 @@ def create_volume_time_chart(df: pd.DataFrame):
 
 
 def create_token_volume_chart(df: pd.DataFrame):
-	"""Create token volume bar chart."""
+	"""Create horizontal bar chart showing total volume by token.
+	
+	Args:
+		df: DataFrame with 'Token' and 'Volume' columns
+		
+	Returns:
+		Plotly figure object with horizontal bar chart
+	"""
 	vol_token = df.groupby("Token", as_index=False)["Volume"].sum()
 	vol_token = vol_token.sort_values("Volume", ascending=True)
 	fig = px.bar(
@@ -71,7 +78,17 @@ def create_token_volume_chart(df: pd.DataFrame):
 
 
 def create_risk_histogram(df: pd.DataFrame, tokens: tuple):
-	"""Create risk score histogram - using pre-binned data for performance."""
+	"""Create risk score distribution histogram with token overlay.
+	
+	Pre-bins data to reduce plotly processing time and improve rendering performance.
+	
+	Args:
+		df: DataFrame with 'Risk Score' and 'Token' columns
+		tokens: Tuple of token names to include in the visualization
+		
+	Returns:
+		Plotly figure object with overlaid histogram bars
+	"""
 	filtered_df = df[df["Token"].isin(tokens)]
 	
 	# Pre-bin the data to reduce plotly processing time
@@ -96,7 +113,18 @@ def create_risk_histogram(df: pd.DataFrame, tokens: tuple):
 
 
 def get_component_scores(df: pd.DataFrame, tokens: tuple) -> pd.DataFrame:
-	"""Compute average component scores by token."""
+	"""Compute average risk score components grouped by token.
+	
+	Aggregates all scoring components (Volume, Token, Concentration, Velocity, 
+	Sanctions, Burst, Time, and overall Risk Score) by token.
+	
+	Args:
+		df: DataFrame with score columns and 'Token' column
+		tokens: Tuple of token names to filter and analyze
+		
+	Returns:
+		DataFrame with one row per token showing average scores for each component
+	"""
 	filtered_df = df[df["Token"].isin(tokens)]
 	return filtered_df.groupby("Token", as_index=False)[
 		[

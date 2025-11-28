@@ -2,8 +2,21 @@
 import streamlit as st
 import pandas as pd
 
-def format_volume(value):
-	"""Format large numbers more compactly (e.g., $51.2B instead of $51,199,081)."""
+def format_volume(value: float) -> str:
+	"""Format large numbers more compactly.
+	
+	Args:
+		value: Numeric value to format (typically USD volume)
+		
+	Returns:
+		Formatted string with B/M/K suffix (e.g., $51.2B instead of $51,199,081)
+		
+	Examples:
+		>>> format_volume(51_199_081_000)
+		'$51.20B'
+		>>> format_volume(1_500_000)
+		'$1.50M'
+	"""
 	if value >= 1_000_000_000:
 		return f"${value/1_000_000_000:.2f}B"
 	elif value >= 1_000_000:
