@@ -1,12 +1,7 @@
 import pandas as pd
-from pathlib import Path
-from utils.public_scoring import compute_public_risk_scores
 import streamlit as st
 import requests
-import io
 import logging
-import tempfile
-import os
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -14,59 +9,174 @@ if not logger.handlers:
     logging.basicConfig(level=logging.INFO)
 
 
+def _get_api_config():
+    api_url = st.secrets.get("API_URL", "https://stablecoin-api-636795230004.us-central1.run.app")
+    api_key = st.secrets.get("API_KEY")
+    
+    if not api_key:
+        st.error("API_KEY not found in secrets. Please configure .streamlit/secrets.toml")
+        return None, None
+    
+    return api_url, api_key
+
+
 @st.cache_data(ttl=3600)
-def load_cloud_data() -> pd.DataFrame:
-    """Load pre-processed data from Google Cloud Storage public CSV.
-
-    Uses `requests` for secure TLS handling and persists the `Last-Modified`
-    timestamp to a small cache file under `.cache/` so it survives full page reloads.
-    """
-    cloud_url = "https://storage.googleapis.com/stablecoin-dashboard-public/real_scores.csv"
-    cache_path = Path(__file__).parent.parent / ".cache" / "cloud_last_modified.txt"
-
+def get_last_updated() -> str:
+    api_url, api_key = _get_api_config()
+    if not api_url or not api_key:
+        return "Unknown"
+    
     try:
-        resp = requests.get(cloud_url, stream=True, timeout=30)
+        headers = {"X-API-Key": api_key}
+        resp = requests.get(f"{api_url}/dashboard/last-updated", headers=headers, timeout=30)
         resp.raise_for_status()
+        
+        data = resp.json()
+        timestamp = data.get("last_updated", "Unknown")
+        
+        st.session_state["cloud_last_modified"] = f"{timestamp} (updated every 24 hours)"
+        
+        return timestamp
+    except Exception as e:
+        logger.exception("Error fetching last updated: %s", e)
+        return "Unknown"
 
-        last_modified = resp.headers.get("Last-Modified")
-        if last_modified:
-            try:
-                from email.utils import parsedate_to_datetime
 
-                last_update = parsedate_to_datetime(last_modified)
-                # normalize to UTC string
-                last_update = last_update.astimezone(timezone.utc)
-                formatted = last_update.strftime("%Y-%m-%d %H:%M:%S UTC")
-                st.session_state["cloud_last_modified"] = formatted
+@st.cache_data(ttl=3600)
+def get_dashboard_summary(hours: int = 24) -> dict:
+    api_url, api_key = _get_api_config()
+    if not api_url or not api_key:
+        return {}
+    
+    try:
+        headers = {"X-API-Key": api_key}
+        params = {"hours": hours}
+        resp = requests.get(f"{api_url}/dashboard/summary", headers=headers, params=params, timeout=30)
+        resp.raise_for_status()
+        
+        summary = resp.json()
+        
+        return summary
+    except Exception as e:
+        logger.exception("Error fetching dashboard summary: %s", e)
+        st.error(f"Failed to fetch summary: {e}")
+        return {}
 
-                # persist atomically to .cache
-                try:
-                    cache_path.parent.mkdir(parents=True, exist_ok=True)
-                    # write to temp file then atomic replace
-                    with tempfile.NamedTemporaryFile("w", delete=False, dir=str(cache_path.parent)) as tf:
-                        tf.write(formatted)
-                        temp_name = tf.name
-                    os.replace(temp_name, str(cache_path))
-                except OSError as e:
-                    logger.warning("Failed to write cloud_last_modified cache: %s", e)
-            except (TypeError, ValueError, ImportError) as e:
-                # These are the likely failures: malformed header, parsing errors,
-                # or missing stdlib function (very unlikely). Log as a warning only.
-                logger.warning("Failed to parse Last-Modified header: %s", e)
 
-        # Read CSV from response content (safer for stream handling)
-        content = resp.content
-        df = pd.read_csv(io.StringIO(content.decode("utf-8")))
-
-        if df.empty:
-            st.warning("No data returned from cloud storage.")
-            return pd.DataFrame()
-
-        # Normalize and compute scores
-        df = compute_public_risk_scores(df)
+@st.cache_data(ttl=3600)
+def get_top_wallets(top_n: int = 100, sort_by: str = 'risk', hours: int = 24) -> pd.DataFrame:
+    api_url, api_key = _get_api_config()
+    if not api_url or not api_key:
+        return pd.DataFrame()
+    
+    try:
+        headers = {"X-API-Key": api_key}
+        params = {"top_n": top_n, "sort_by": sort_by, "hours": hours}
+        resp = requests.get(f"{api_url}/dashboard/top-wallets", headers=headers, params=params, timeout=30)
+        resp.raise_for_status()
+        
+        data = resp.json()
+        df = pd.DataFrame(data["data"])
+        
         return df
+    except Exception as e:
+        logger.exception("Error fetching top wallets: %s", e)
+        st.error(f"Failed to fetch top wallets: {e}")
+        return pd.DataFrame()
 
-    except requests.exceptions.RequestException as e:
-        logger.exception("Error fetching cloud CSV: %s", e)
-        st.error(f"Cloud storage fetch error: {e}")
+
+@st.cache_data(ttl=3600)
+def get_timeseries_data(hours: int = 24) -> pd.DataFrame:
+    api_url, api_key = _get_api_config()
+    if not api_url or not api_key:
+        return pd.DataFrame()
+    
+    try:
+        headers = {"X-API-Key": api_key}
+        params = {"hours": hours}
+        resp = requests.get(f"{api_url}/dashboard/timeseries", headers=headers, params=params, timeout=30)
+        resp.raise_for_status()
+        
+        data = resp.json()
+        df = pd.DataFrame(data["data"])
+        
+        if 'datetime' in df.columns:
+            df['datetime'] = pd.to_datetime(df['datetime'])
+        
+        return df
+    except Exception as e:
+        logger.exception("Error fetching timeseries: %s", e)
+        st.error(f"Failed to fetch timeseries: {e}")
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=3600)
+def get_token_volume(hours: int = 24) -> pd.DataFrame:
+    api_url, api_key = _get_api_config()
+    if not api_url or not api_key:
+        return pd.DataFrame()
+    
+    try:
+        headers = {"X-API-Key": api_key}
+        params = {"hours": hours}
+        resp = requests.get(f"{api_url}/dashboard/token-volume", headers=headers, params=params, timeout=30)
+        resp.raise_for_status()
+        
+        data = resp.json()
+        df = pd.DataFrame(data["data"])
+        
+        return df
+    except Exception as e:
+        logger.exception("Error fetching token volume: %s", e)
+        st.error(f"Failed to fetch token volume: {e}")
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=3600)
+def get_risk_distribution(tokens: list = None) -> pd.DataFrame:
+    api_url, api_key = _get_api_config()
+    if not api_url or not api_key:
+        return pd.DataFrame()
+    
+    try:
+        headers = {"X-API-Key": api_key}
+        params = {}
+        if tokens:
+            params["tokens"] = ",".join(tokens)
+        
+        resp = requests.get(f"{api_url}/dashboard/risk-distribution", headers=headers, params=params, timeout=30)
+        resp.raise_for_status()
+        
+        data = resp.json()
+        df = pd.DataFrame(data["data"])
+        
+        return df
+    except Exception as e:
+        logger.exception("Error fetching risk distribution: %s", e)
+        st.error(f"Failed to fetch risk distribution: {e}")
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=3600)
+def get_component_scores(tokens: list = None) -> pd.DataFrame:
+    api_url, api_key = _get_api_config()
+    if not api_url or not api_key:
+        return pd.DataFrame()
+    
+    try:
+        headers = {"X-API-Key": api_key}
+        params = {}
+        if tokens:
+            params["tokens"] = ",".join(tokens)
+        
+        resp = requests.get(f"{api_url}/dashboard/component-scores", headers=headers, params=params, timeout=30)
+        resp.raise_for_status()
+        
+        data = resp.json()
+        df = pd.DataFrame(data["data"])
+        
+        return df
+    except Exception as e:
+        logger.exception("Error fetching component scores: %s", e)
+        st.error(f"Failed to fetch component scores: {e}")
         return pd.DataFrame()

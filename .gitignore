@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# macOS
+.DS_Store
+
 # Distribution / packaging
 .Python
 build/
@@ -227,6 +230,9 @@ data_private/
 *.token
 *.credentials
 
+# API folder
+api/
+
 # VS code
 .vscode/
 .idea/
@@ -267,3 +273,11 @@ data/real/sanctions/
 # Archive queries folder (BigQuery queries)
 queries/
 queries/**
+
+# Cloud Function deployment files
+cloud_function_fix.py
+cloud_function_test.py
+main.py
+function.py
+
+cloud_function_requirements.txt

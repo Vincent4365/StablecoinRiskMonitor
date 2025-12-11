@@ -1,105 +1,130 @@
 # StablecoinRiskMonitor
 
-Public dashboard and analytics toolkit that monitors stablecoin flows linked to sanctioned addresses and provides transparent AML risk indicators.
+![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)
+![Streamlit](https://img.shields.io/badge/streamlit-1.52.0-red.svg)
+![FastAPI](https://img.shields.io/badge/fastapi-0.109.0-green.svg)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 
-## Features
+Real-time AML risk monitoring platform that identifies high-risk wallet behavior across major stablecoin networks using proprietary risk scoring and interactive visualization.
 
-- **Real-time Risk Monitoring**: Track risk scores across major stablecoins (USDT, USDC, DAI, USDe)
-- **Sanctions Detection**: Identify wallets with exposure to sanctioned addresses
-- **Multi-dimensional Risk Scoring**: Combines transaction volume, velocity, concentration, and temporal patterns
-- **Interactive Analytics**: Explore high-risk wallets, volume trends, and risk distributions
-- **Privacy-First**: All blockchain addresses are anonymized
+## Overview
 
-## Installation
+StablecoinRiskMonitor helps analysts, researchers, and compliance teams assess emerging risks in the digital asset ecosystem through blockchain data analysis and advanced risk scoring. The platform processes stablecoin transaction data to identify suspicious patterns and sanctions exposure.
 
-### Prerequisites
-- Python 3.8+
-- pip
+## Key Features
 
-### Setup
+- **Real-time Risk Scoring** across USDT, USDC, DAI, and USDe
+- **Sanctions Exposure Detection** linked to OFAC-listed addresses
+- **Wallet-Level Behavioral Analysis** (velocity, concentration, burst patterns)
+- **Systemic Risk Indicators** revealing emerging market stress patterns
+- **Interactive Dashboard** with fast-loading analytics (<5 seconds)
+- **Privacy-Preserving Architecture** with anonymized wallet identifiers
+- **High-Performance API** serving pre-aggregated data (99.9% data reduction)
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Vincent4365/StablecoinRiskMonitor.git
-   cd StablecoinRiskMonitor
-   ```
+## System Architecture
 
-2. **Create virtual environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+The platform consists of three main components:
 
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 1. Data Processing Pipeline
+- Automated 24-hour batch processing
+- Blockchain data extraction and validation
+- Proprietary risk scoring engine
+- Pre-aggregation for optimal performance
+- Secure storage in Google Cloud Storage (Parquet format)
 
-4. **Run the dashboard**
-   ```bash
-   streamlit run Dashboard.py
-   ```
+### 2. REST API (FastAPI)
+- Deployed on Google Cloud Run (serverless)
+- 6 optimized dashboard endpoints
+- API key authentication
+- 1-hour response caching
+- Reduces data transfer from 371K rows to ~300 aggregated rows
 
-5. **Open in browser**
-   Navigate to `http://localhost:8501`
+### 3. Interactive Dashboard (Streamlit)
+- Summary metrics and KPIs
+- High-risk wallet rankings (adjustable top 5-100)
+- Volume trends and token distribution charts
+- Risk score distribution histograms
+- Component score breakdowns
 
-## Data Source
-
-The dashboard operates in **cloud-only mode**, fetching pre-processed stablecoin transaction data from Google Cloud Storage:
-- Data is updated every 24 hours
-- Includes transactions from major stablecoin protocols
-- All wallet addresses are anonymized for privacy
-- Sanctions data is cross-referenced with public OFAC lists
-
-## Architecture
-
-### Project Structure
-```
-StablecoinRiskMonitor/
-├── Dashboard.py              # Main dashboard entry point
-├── pages/                    # Multi-page Streamlit app
-│   ├── 2_Risk_Alerts.py     # High-risk wallet alerts
-│   ├── 3_Risk_Scores.py     # Risk score distributions
-│   ├── 4_Systemic_Risk_Index.py
-│   └── 5_Methodology.py     # Scoring methodology docs
-├── utils/                    # Core utilities
-│   ├── charts.py            # Plotly chart generation
-│   ├── formatting.py        # Data formatting helpers
-│   ├── load_data.py         # Cloud data loader (cached)
-│   ├── public_scoring.py    # Risk scoring algorithms
-│   ├── sidebar.py           # Shared sidebar component
-│   └── styling.py           # CSS/icon injection
-├── data/
-│   ├── sanctions/           # Sanctions reference data
-│   └── processed/           # Local cache
-└── requirements.txt
+## API Endpoints
 
 ```
+/dashboard/summary              # Key metrics (volume, wallets, avg risk)
+/dashboard/top-wallets          # High-risk/whale/sanctions wallets
+/dashboard/timeseries           # Volume over time by token
+/dashboard/token-volume         # Total volume by stablecoin
+/dashboard/risk-distribution    # Risk score histogram
+/dashboard/component-scores     # Score breakdown by component
+```
 
-### Risk Scoring Components
+## Risk Scoring Methodology
 
-The public risk score (0-100) combines multiple signals:
-- **Transaction Volume** (25%): Size and frequency of transfers
-- **Token Profile** (20%): Stablecoin type and risk characteristics
-- **Wallet Concentration** (20%): Distribution of activity across wallets
-- **Velocity/Activity** (20%): Speed of fund movement
-- **Burst Score** (10%): Hourly transaction clustering
-- **Time Activity** (5%): 24-hour activity spread
-- **Sanctions Multiplier**: Applied when wallets interact with sanctioned addresses
+Risk scores (0-100) are calculated using a proprietary weighted aggregation of multiple indicators:
 
-### Performance Optimizations
-- **Loader-level caching**: Data fetched from cloud is cached for 1 hour
-- **Single-pass aggregations**: Wallet-level metrics computed in one groupby operation
-- **Pre-binned histograms**: Risk distributions use client-side binning for faster rendering
+- **Transaction Volume**: Log-scaled systemic importance
+- **Token Risk Profile**: Stablecoin-specific risk characteristics
+- **Concentration Metrics**: Transaction size distribution (Herfindahl index)
+- **Behavioral Patterns**: Velocity, burst activity, temporal spread
+- **Sanctions Exposure**: Amplification for OFAC-listed interactions
 
-## Contributing
+Specific weights and formulas are proprietary to maintain scoring integrity, but the methodology follows established AML risk assessment frameworks. See the Methodology page in the dashboard for more details.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## Impact
+
+StablecoinRiskMonitor contributes to:
+
+- Enhanced AML monitoring
+- Early-risk detection for regulators, exchanges, and financial institutions
+- Greater transparency in a sector processing billions in daily volume
+- Improved systemic-risk visibility for researchers and policymakers
+
+This project supports the broader goal of strengthening the safety and integrity of U.S. financial systems as digital-assets usage continues to expand.
+
+## Installation & Usage
+
+### Running the Dashboard Locally
+
+```bash
+git clone https://github.com/Vincent4365/StablecoinRiskMonitor.git
+cd StablecoinRiskMonitor
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+streamlit run Dashboard.py
+```
+
+The dashboard will connect to the production API automatically. No additional configuration required.
+
+### API Access
+
+The API is hosted at: `https://stablecoin-api-636795230004.us-central1.run.app`
+
+Authentication requires an API key in the `X-API-Key` header. Contact the maintainers for access credentials.
+
+## Technology Stack
+
+- **Frontend**: Streamlit 1.52.0
+- **API**: FastAPI 0.109.0 + Uvicorn 0.27.0
+- **Data Processing**: Pandas 2.2.0, NumPy 1.26.0
+- **Storage**: Google Cloud Storage (Parquet format)
+- **Visualization**: Plotly Express
+- **Deployment**: Docker + Google Cloud Run
+
+## Performance
+
+- **Load Time**: <5 seconds (vs. previous timeouts)
+- **Data Reduction**: 99.9% (371K rows → ~300 aggregated rows)
+- **Update Frequency**: Every 24 hours
+- **Caching**: 1-hour TTL on API responses
+
+## Author
+
+**Vincent** - [@Vincent4365](https://github.com/Vincent4365)
+
+For questions, feedback, or collaboration opportunities, please open an issue on GitHub.
 
 ## License
 
-This project is for educational and transparency purposes. All blockchain data is publicly available and anonymized.
+MIT License - see [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
-
-Built with [Streamlit](https://streamlit.io), [Plotly](https://plotly.com), and [Pandas](https://pandas.pydata.org)
+This project advances blockchain risk transparency and supports research, compliance investigation, and public-interest financial safety.

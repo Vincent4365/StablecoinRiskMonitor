@@ -1,7 +1,9 @@
 import streamlit as st
+from utils.load_data import get_last_updated
 from utils.sidebar import sidebar
 
-sidebar()
+last_updated = get_last_updated()
+sidebar(last_updated)
 
 st.title("Systemic Risk Index")
 st.caption(

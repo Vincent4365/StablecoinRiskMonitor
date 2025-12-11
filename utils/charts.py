@@ -1,53 +1,48 @@
-"""Shared chart creation utilities for the dashboard."""
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 
 
 def create_volume_time_chart(df: pd.DataFrame):
-	"""Create volume time series chart.
-
-	Chart functions are intentionally not cached here; caching should be applied
-	at the data-loading level so charts render quickly from already-cached data.
-	"""
-	# Data loader normalizes columns to title case (Date, Hour, Token, Volume)
-	if 'Date' not in df.columns or 'Hour' not in df.columns or 'Token' not in df.columns:
-		daily = df.groupby(["Date", "Hour", "Token"], as_index=False)["Volume"].sum()
-		fig = px.line(daily, x="Hour", y="Volume", color="Token", line_group="Date", markers=False)
+	if df.empty:
+		return px.line()
+	
+	if 'datetime' in df.columns:
+		df_local = df.copy()
+		if not pd.api.types.is_datetime64_any_dtype(df_local['datetime']):
+			df_local['datetime'] = pd.to_datetime(df_local['datetime'])
+		
+		fig = px.line(df_local, x='datetime', y='Volume', color='Token', line_group='Token', markers=False)
+		fig.update_traces(connectgaps=False)
+		fig.update_xaxes(title='Hour', tickformat='%H:%M\n%b-%d')
 		return fig
+	
+	if 'Date' not in df.columns or 'Hour' not in df.columns or 'Token' not in df.columns:
+		return px.line()
 
-	# Build hourly datetime (Hour: 1..24 -> offset 0..23)
 	df_local = df.copy()
 	df_local['__date'] = pd.to_datetime(df_local['Date'], errors='coerce')
 	df_local['__hour'] = pd.to_numeric(df_local['Hour'], errors='coerce')
 	df_local['datetime'] = df_local['__date'] + pd.to_timedelta(df_local['__hour'] - 1, unit='h')
 
-	# Anchor the rolling window to the latest hour available in the data
 	max_dt = df_local['datetime'].max()
 	if pd.isna(max_dt):
-		# Fallback to original behavior if we can't build datetimes
-		daily = df.groupby(["Date", "Hour", "Token"], as_index=False)["Volume"].sum()
-		fig = px.line(daily, x="Hour", y="Volume", color="Token", line_group="Date", markers=False)
-		return fig
+		return px.line()
 
 	min_dt = max_dt - pd.Timedelta(hours=23)
 
-	# Restrict to the last 24 hours
 	window = df_local[(df_local['datetime'] >= min_dt) & (df_local['datetime'] <= max_dt)].copy()
 
-	# Aggregate by exact hourly timestamp and token
 	grouped = (
 		window.groupby(['datetime', 'Token'], as_index=False)['Volume']
 		.sum()
 	)
 
-	# Ensure every token has each hour in the 24h window (fill missing with 0)
 	hours = pd.date_range(start=min_dt, end=max_dt, freq='h')
 	tokens = grouped['Token'].unique() if not grouped.empty else df_local['Token'].unique()
 	idx = pd.MultiIndex.from_product([hours, tokens], names=['datetime', 'Token'])
 	grouped = grouped.set_index(['datetime', 'Token']).reindex(idx, fill_value=0).reset_index()
 
-	# Plot with a continuous datetime x-axis
 	fig = px.line(grouped, x='datetime', y='Volume', color='Token', line_group='Token', markers=False)
 	fig.update_traces(connectgaps=False)
 	fig.update_xaxes(title='Hour', tickformat='%H:%M\n%b-%d')
@@ -56,14 +51,6 @@ def create_volume_time_chart(df: pd.DataFrame):
 
 
 def create_token_volume_chart(df: pd.DataFrame):
-	"""Create horizontal bar chart showing total volume by token.
-	
-	Args:
-		df: DataFrame with 'Token' and 'Volume' columns
-		
-	Returns:
-		Plotly figure object with horizontal bar chart
-	"""
 	vol_token = df.groupby("Token", as_index=False)["Volume"].sum()
 	vol_token = vol_token.sort_values("Volume", ascending=True)
 	fig = px.bar(
@@ -77,64 +64,23 @@ def create_token_volume_chart(df: pd.DataFrame):
 	return fig
 
 
-def create_risk_histogram(df: pd.DataFrame, tokens: tuple):
-	"""Create risk score distribution histogram with token overlay.
+
+def create_risk_histogram_from_api(df: pd.DataFrame):
+	if df.empty:
+		return px.bar()
 	
-	Pre-bins data to reduce plotly processing time and improve rendering performance.
-	
-	Args:
-		df: DataFrame with 'Risk Score' and 'Token' columns
-		tokens: Tuple of token names to include in the visualization
-		
-	Returns:
-		Plotly figure object with overlaid histogram bars
-	"""
-	filtered_df = df[df["Token"].isin(tokens)]
-	
-	# Pre-bin the data to reduce plotly processing time
-	bins = pd.cut(filtered_df["Risk Score"], bins=30, include_lowest=True)
-	hist_data = (
-		filtered_df.groupby([bins, "Token"], observed=True)
-		.size()
-		.reset_index(name="count")
-	)
-	hist_data["Risk Score"] = hist_data["Risk Score"].apply(lambda x: x.mid)
+	df_plot = df.copy()
+	df_plot["Risk Score"] = (df_plot["bin_start"] + df_plot["bin_end"]) / 2
 	
 	fig = px.bar(
-		hist_data,
+		df_plot,
 		x="Risk Score",
 		y="count",
 		color="Token",
 		barmode="overlay",
 		opacity=0.6,
-		labels={"count": "Count", "Risk Score": "Public risk score"},
+		labels={"count": "Count", "Risk Score": "Risk score"},
 	)
 	return fig
 
 
-def get_component_scores(df: pd.DataFrame, tokens: tuple) -> pd.DataFrame:
-	"""Compute average risk score components grouped by token.
-	
-	Aggregates all scoring components (Volume, Token, Concentration, Velocity, 
-	Sanctions, Burst, Time, and overall Risk Score) by token.
-	
-	Args:
-		df: DataFrame with score columns and 'Token' column
-		tokens: Tuple of token names to filter and analyze
-		
-	Returns:
-		DataFrame with one row per token showing average scores for each component
-	"""
-	filtered_df = df[df["Token"].isin(tokens)]
-	return filtered_df.groupby("Token", as_index=False)[
-		[
-			"Volume Score",
-			"Token Score",
-			"Concentration Score",
-			"Velocity Score",
-			"Sanctions Score",
-			"Burst Score",
-			"Time Score",
-			"Risk Score",
-		]
-	].mean()
