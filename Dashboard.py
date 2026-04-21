@@ -17,6 +17,7 @@ from utils.sidebar import sidebar
 from utils.formatting import format_volume, format_volume_exact, format_utc_timestamp
 from utils.charts import create_volume_time_chart, create_token_volume_chart, get_token_color_map
 from utils.styling import inject_icon_styles
+from utils.pandas_styler_compat import styler_cell_map
 
 st.set_page_config(
 	page_title="Stablecoin Risk Monitor",
@@ -351,8 +352,9 @@ with tab1:
 			)
 			if "Risk Score" in view.columns:
 				view["Risk Score"] = pd.to_numeric(view["Risk Score"], errors="coerce")
+			styled = styler_cell_map(view.style, _risk_cell_style, subset=["Risk Score"])
 			st.dataframe(
-				view.style.applymap(_risk_cell_style, subset=["Risk Score"]),
+				styled,
 				hide_index=True,
 				use_container_width=True,
 				column_config={

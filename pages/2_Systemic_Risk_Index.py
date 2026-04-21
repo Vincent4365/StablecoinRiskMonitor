@@ -5,6 +5,7 @@ import streamlit as st
 from utils.sidebar import sidebar
 from utils.formatting import format_relative_time
 from utils.styling import inject_icon_styles
+from utils.pandas_styler_compat import styler_cell_map
 from utils.load_data_new import (
 	get_systemic_stablecoin_current,
 	get_systemic_stablecoin_summary,
@@ -168,21 +169,18 @@ with tab_metrics:
 		if "Market Cap" in view.columns:
 			view = view.sort_values(["Market Cap", "Ticker"], ascending=[False, True], kind="mergesort")
 
-		styled = (
-			view.style
-			.format(
-				{
-					"Price": "${:,.6f}",
-					"Market Cap": "${:,.0f}",
-					"Peg Deviation (%)": "{:+.3f}%",
-					"Volume (24h)": "${:,.0f}",
-					"Net Issuance (24h)": "${:,.0f}",
-					"Risk Score": "{:,.2f}",
-				},
-				na_rep="—",
-			)
-			.applymap(_risk_cell_style, subset=["Risk Score"])
+		styled = view.style.format(
+			{
+				"Price": "${:,.6f}",
+				"Market Cap": "${:,.0f}",
+				"Peg Deviation (%)": "{:+.3f}%",
+				"Volume (24h)": "${:,.0f}",
+				"Net Issuance (24h)": "${:,.0f}",
+				"Risk Score": "{:,.2f}",
+			},
+			na_rep="—",
 		)
+		styled = styler_cell_map(styled, _risk_cell_style, subset=["Risk Score"])
 		st.dataframe(styled, hide_index=True, use_container_width=True)
 
 with tab_compare:
