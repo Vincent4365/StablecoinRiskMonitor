@@ -1,11 +1,11 @@
 # StablecoinRiskMonitor
 
-![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)
-![Streamlit](https://img.shields.io/badge/streamlit-1.52.0-red.svg)
-![FastAPI](https://img.shields.io/badge/fastapi-0.109.0-green.svg)
+![Python](https://img.shields.io/badge/python-3.x-blue.svg)
+![Streamlit](https://img.shields.io/badge/streamlit-dashboard-red.svg)
+![FastAPI](https://img.shields.io/badge/fastapi-api-green.svg)
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 
-Real-time AML risk monitoring platform that identifies high-risk wallet behavior across major stablecoin networks using proprietary risk scoring and interactive visualization.
+AML risk monitoring platform that identifies high-risk wallet behavior across major stablecoin networks using risk scoring and interactive visualization.
 
 ## Overview
 
@@ -13,31 +13,26 @@ StablecoinRiskMonitor helps analysts, researchers, and compliance teams assess e
 
 ## Key Features
 
-- **Real-time Risk Scoring** across USDT, USDC, DAI, and USDe
+- **Risk Scoring** across major stablecoins
 - **Sanctions Exposure Detection** linked to OFAC-listed addresses
 - **Wallet-Level Behavioral Analysis** (velocity, concentration, burst patterns)
 - **Systemic Risk Indicators** revealing emerging market stress patterns
-- **Interactive Dashboard** with fast-loading analytics (<5 seconds)
-- **Privacy-Preserving Architecture** with anonymized wallet identifiers
-- **High-Performance API** serving pre-aggregated data (99.9% data reduction)
+- **Interactive Dashboard** for exploration and monitoring
+- **API-backed Architecture** serving pre-aggregated data
 
 ## System Architecture
 
 The platform consists of three main components:
 
 ### 1. Data Processing Pipeline
-- Automated 24-hour batch processing
-- Blockchain data extraction and validation
-- Proprietary risk scoring engine
-- Pre-aggregation for optimal performance
-- Secure storage in Google Cloud Storage (Parquet format)
+- Scheduled data exports and aggregation
+- Pre-aggregation for dashboard performance
+- Storage in Google Cloud Storage (Parquet)
 
 ### 2. REST API (FastAPI)
 - Deployed on Google Cloud Run (serverless)
-- 6 optimized dashboard endpoints
 - API key authentication
-- 1-hour response caching
-- Reduces data transfer from 371K rows to ~300 aggregated rows
+- Endpoint-level caching (where appropriate)
 
 ### 3. Interactive Dashboard (Streamlit)
 - Summary metrics and KPIs
@@ -49,12 +44,12 @@ The platform consists of three main components:
 ## API Endpoints
 
 ```
-/dashboard/summary              # Key metrics (volume, wallets, avg risk)
-/dashboard/top-wallets          # High-risk/whale/sanctions wallets
-/dashboard/timeseries           # Volume over time by token
-/dashboard/token-volume         # Total volume by stablecoin
-/dashboard/risk-distribution    # Risk score histogram
-/dashboard/component-scores     # Score breakdown by component
+/dashboard/total-wallets-tracked     # KPI snapshot (chain=eth|tron)
+/dashboard/top-counterparties        # Top counterparties (24h, chain=eth|tron)
+/dashboard/timeseries-snapshot       # Volume timeseries (24h, chain=eth|tron)
+/dashboard/token-volume-snapshot     # Token volume totals (24h, chain=eth|tron)
+/wallet-metrics/*                   # Rolling/hourly wallet metrics + whale alerts
+/ae/*                               # A–E stablecoin aggregate exports
 ```
 
 ## Risk Scoring Methodology
@@ -93,29 +88,22 @@ pip install -r requirements.txt
 streamlit run Dashboard.py
 ```
 
-The dashboard will connect to the production API automatically. No additional configuration required.
+The dashboard connects to an API. For local runs, configure `API_URL` and `API_KEY` via Streamlit secrets (see `.streamlit/secrets.toml`).
 
 ### API Access
 
 The API is hosted at: `https://stablecoin-api-636795230004.us-central1.run.app`
 
-Authentication requires an API key in the `X-API-Key` header. Contact the maintainers for access credentials.
+Authentication requires an API key in the `X-API-Key` header.
 
 ## Technology Stack
 
-- **Frontend**: Streamlit 1.52.0
-- **API**: FastAPI 0.109.0 + Uvicorn 0.27.0
-- **Data Processing**: Pandas 2.2.0, NumPy 1.26.0
+- **Frontend**: Streamlit
+- **API**: FastAPI
+- **Data Processing**: Pandas, NumPy
 - **Storage**: Google Cloud Storage (Parquet format)
 - **Visualization**: Plotly Express
 - **Deployment**: Docker + Google Cloud Run
-
-## Performance
-
-- **Load Time**: <5 seconds (vs. previous timeouts)
-- **Data Reduction**: 99.9% (371K rows → ~300 aggregated rows)
-- **Update Frequency**: Every 24 hours
-- **Caching**: 1-hour TTL on API responses
 
 ## Author
 

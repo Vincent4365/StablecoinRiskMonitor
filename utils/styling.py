@@ -11,5 +11,14 @@ def inject_icon_styles():
         .stTabs [data-baseweb="tab-list"] button i {
             margin-right: 8px;
         }
+
+        /* Avoid ellipsis truncation in dataframes (e.g., full wallet addresses) */
+        div[data-testid="stDataFrame"] div[role="gridcell"],
+        .stDataFrame div[role="gridcell"] {
+            white-space: normal !important;
+            text-overflow: clip !important;
+            overflow: visible !important;
+            word-break: break-all !important;
+        }
     </style>
     """, unsafe_allow_html=True)

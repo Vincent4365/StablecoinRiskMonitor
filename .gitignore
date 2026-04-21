@@ -9,6 +9,15 @@ __pycache__/
 # macOS
 .DS_Store
 
+# Local archive folder (keep out of git)
+archive/
+
+# Ad-hoc / local Streamlit pages (not part of multipage app)
+10_Stablecoin_Endpoints.py
+
+# Local reviewer scratch space
+reviewer_artifacts/
+
 # Distribution / packaging
 .Python
 build/
@@ -195,6 +204,10 @@ cython_debug/
 .ruff_cache/
 
 # PyPI configuration file
+
+# Streamlit secrets
+.streamlit/secrets.toml
+.streamlit/secrets.*.toml
 .pypirc
 
 # Cursor
@@ -214,14 +227,14 @@ private/
 data_raw/
 data_private/
 
+# Local datasets (keep out of git; pipeline reads from GCS)
+data/
+
 # Prevent upload real data
 *.parquet
 *.csv
 *.json
-
-# Exceptions public data folders
-!data/sample/
-!data/processed/
+*.sql
 
 # Secrets and keys
 *.key
@@ -233,42 +246,14 @@ data_private/
 # API folder
 api/
 
+# Cloud Functions folder
+cloud_functions/
+
 # VS code
 .vscode/
 .idea/
 
-# Ignore all raw blockchain data
-data/real/
-data/real/raw/
-data/real/raw_*/
-data/real/*raw*.csv
-data/real/*raw*.parquet
-data/real/*raw*.json
-
-# Ignore any CSV/JSON exports unless explicitly allowed
-data/**/*.csv
-data/**/*.json
-data/**/*.parquet
-
-# Allow only safe demo + processed datasets
-!data/sample/
-!data/sample/**
-!data/processed/
-!data/processed/**
-!data/real/real_scores.csv    # anonymized final dataset (optional)
-
-# Ignore sanctions lists
-data/sanctions/
-*.sanctions.csv
-sanctions.csv
-sanctioned_addresses.csv
-*.blocked.csv
-*.watchlist.csv
-data/real/sanctions/
-
-*wallets*.csv
-*addresses*.csv
-*blockchain*.csv
+# (Intentionally no exceptions under data/)
 
 # Archive queries folder (BigQuery queries)
 queries/
