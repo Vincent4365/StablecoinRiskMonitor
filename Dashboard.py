@@ -157,12 +157,12 @@ with st.container(border=True):
 	col1, col2, col3, col4 = st.columns(4)
 	with col1:
 		unique_wallets = summary.get("unique_wallets")
-		st.metric("Unique Wallets", "N/A" if unique_wallets is None else f"{unique_wallets:,}")
+		st.metric("Unique Wallets (24h)", "N/A" if unique_wallets is None else f"{unique_wallets:,}")
 	with col2:
-		st.metric("Total Volume", _metric_na(summary.get("total_volume"), format_volume))
+		st.metric("Total Volume (24h)", _metric_na(summary.get("total_volume"), format_volume))
 	with col3:
 		total_tx = summary.get("total_transactions")
-		st.metric("Total Transactions", "N/A" if total_tx is None else f"{total_tx:,}")
+		st.metric("Total Transactions (24h)", "N/A" if total_tx is None else f"{total_tx:,}")
 	with col4:
 		st.caption("Chain")
 		eth_col, tron_col = st.columns([1.2, 1.0], vertical_alignment="center")
