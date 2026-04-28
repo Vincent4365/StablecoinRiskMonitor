@@ -16,7 +16,7 @@ sidebar(last_updated)
 
 st.title("Methodology")
 st.caption(
-	"Analytical framework for prioritizing wallets for investigation, monitoring sanctions-linked exposure, "
+	"Analytical framework for prioritizing wallets for further analysis, identifying exposure to sanctions-linked activity, "
 	"and quantifying systemic risk patterns within major stablecoin networks."
 )
 
@@ -25,10 +25,10 @@ with st.container(border=True):
 	st.markdown(
 		"""
 	This document outlines the analytical framework used by StablecoinRiskMonitor to prioritize wallets for analysis,
-	detect exposure to sanctioned entities, and quantify systemic-risk patterns within major stablecoin networks.
+	identify exposure to sanctions-linked activity, and quantify systemic-risk patterns within major stablecoin networks.
 	
 	The methodology is designed to provide **transparency, reproducibility, and public-benefit insights** that support 
-	financial integrity and AML monitoring.
+	financial integrity and analytical or monitoring workflows.
 	"""
 	)
 
@@ -60,7 +60,7 @@ with st.container(border=True):
 
 	### Counterparty Concentration (HHI)
 	Measures how concentrated activity is across counterparties. High concentration can indicate funneling, layering,
-	or single-source dependency—patterns that can warrant closer review in AML workflows.
+	or single-source dependency—patterns that can warrant closer review in analytical or monitoring workflows.
 
 	### Txn Size Concentration (HHI)
 	Measures how concentrated transaction sizes are within a wallet. Repeated uniform transfers or a small number of
@@ -88,7 +88,7 @@ with st.container(border=True):
 	
 	### Sanctions Exposure
 	Wallets that interact with addresses linked to sanctions lists receive an amplified priority adjustment.
-	The system does not label a wallet as sanctioned; it surfaces exposure signals to guide investigation.
+	The system does not label a wallet as sanctioned; it surfaces exposure signals to guide further analysis.
 	"""
 	)
 
@@ -145,11 +145,11 @@ with st.container(border=True):
 		"""
 	The methodology follows five core principles:
 	
-	1. **Transparency:** Metric categories and analytical approach are documented while protecting scoring integrity
-	2. **Data Quality:** All analysis is based on blockchain data and verified sanctions lists
-	3. **Independence:** Does not rely on non-verifiable sources or subjective classification
-	4. **Public Benefit:** Improves visibility into AML and systemic-risk patterns
-	5. **Interpretability:** Surfaces timestamps, components, and coverage signals to support correct use
+	1. **Transparency:** Clear documentation of methodology and scoring logic.
+	2. **Data Quality:** Reliance on verifiable on-chain data and public reference sources.
+	3. **Independence:** Analytical framework without subjective classification or unverifiable inputs.
+	4. **Public Benefit:** Enhances visibility into stablecoin activity and systemic risk patterns.
+	5. **Interpretability:** Produces understandable outputs to support analysis and monitoring.
 	"""
 	)
 
@@ -159,6 +159,7 @@ with st.container(border=True):
 		"""
 	StablecoinRiskMonitor provides **analytical indicators only**. It does not classify any entity as illicit, 
 	sanctioned, or criminal. All outputs support research, transparency, and financial-integrity monitoring.
+	The system prioritizes analytical signals and does not perform regulatory classification or enforcement actions.
 	
 	This content is provided for informational and research purposes only and does not constitute financial, legal, or compliance advice.
 	
