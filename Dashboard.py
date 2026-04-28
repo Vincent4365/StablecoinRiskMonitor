@@ -214,7 +214,7 @@ with tab1:
 					label_visibility="collapsed",
 				)
 			with nav_col:
-				if st.button("Go to Advanced Analysis", use_container_width=True):
+				if st.button("Explore Detailed Wallet Analysis", use_container_width=True):
 					if hasattr(st, "switch_page"):
 						st.switch_page("pages/7_Advanced_Analysis.py")
 					else:
@@ -279,7 +279,7 @@ with tab1:
 		with hdr_left:
 			st.subheader("OFAC Sanctions Overview")
 		with hdr_right:
-			if st.button("Go to Sanctions Monitor", use_container_width=True):
+			if st.button("View Sanctions Activity", use_container_width=True):
 				if hasattr(st, "switch_page"):
 					st.switch_page("pages/3_OFAC_Sanctions_Monitor.py")
 				else:
@@ -314,7 +314,7 @@ with tab1:
 		with hdr_left:
 			st.subheader("Systemic Risk Overview")
 		with hdr_right:
-			if st.button("Go to Systemic Risk Index", use_container_width=True):
+			if st.button("View Systemic Risk Analysis", use_container_width=True):
 				if hasattr(st, "switch_page"):
 					st.switch_page("pages/2_Systemic_Risk_Index.py")
 				else:
